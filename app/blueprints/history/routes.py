@@ -1,7 +1,9 @@
-from flask import render_template, redirect, url_for, flash
+import os
+
+from flask import render_template, redirect, url_for, flash, current_app
 from . import bp
 from ... import db
-from ...models import Contract, Analysis, Hit
+from ...models import Analysis, Hit
 
 
 @bp.route("/")
@@ -79,8 +81,39 @@ def reanalyze(analysis_id: int):
 
 @bp.route("/<int:analysis_id>/delete", methods=["POST"]) 
 def delete_analysis(analysis_id: int):
-    a = Analysis.query.get_or_404(analysis_id)
-    db.session.delete(a)
+    analysis = Analysis.query.get_or_404(analysis_id)
+    contract = analysis.contract
+    remaining = [a for a in contract.analyses if a.id != analysis.id]
+
+    def safe_remove(target: str) -> None:
+        if not target:
+            return
+        try:
+            if os.path.exists(target):
+                os.remove(target)
+        except OSError as exc:
+            current_app.logger.warning("Failed to remove %s: %s", target, exc)
+
+    if not remaining:
+        contract_path = contract.path
+        base_name = os.path.splitext(os.path.basename(contract.filename or ""))[0]
+        reports_dir = current_app.config.get("REPORT_FOLDER")
+        report_candidates = []
+        if reports_dir and base_name:
+            report_candidates = [
+                os.path.join(reports_dir, f"{base_name}_report.html"),
+                os.path.join(reports_dir, f"{base_name}_report.pdf"),
+                os.path.join(reports_dir, f"{base_name}_highlighted.pdf"),
+            ]
+
+        safe_remove(contract_path)
+        for candidate in report_candidates:
+            safe_remove(candidate)
+
+        db.session.delete(contract)
+    else:
+        db.session.delete(analysis)
+
     db.session.commit()
     flash("Analysis deleted.", "success")
     return redirect(url_for("history.list_history"))

@@ -74,7 +74,7 @@
           <div class="alert alert-warning d-flex align-items-center mb-4" style="border-radius: 12px; border: none; background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">
             <i class="fas fa-exclamation-triangle me-3" style="font-size: 1.25rem;"></i>
             <div>
-              <strong>Gemeni Summaries Disabled</strong>
+              <strong>Gemini (AI) Summaries Disabled</strong>
               <div class="small mt-1">Gemini summaries are currently disabled. Enable them in Settings for enhanced analysis.</div>
             </div>
           </div>
@@ -82,15 +82,43 @@
           <div class="alert alert-info d-flex align-items-center mb-4" style="border-radius: 12px; border: none; background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
             <i class="fas fa-robot me-3" style="font-size: 1.25rem;"></i>
             <div>
-              <strong>Gemeni Summary Ready</strong>
-              <div class="small mt-1">Your document will be analyzed with Gemeni enabled.</div>
+              <strong>Gemini (AI) Analysis Ready</strong>
+              <div class="small mt-1">Your document will be analyzed with Gemini summaries enabled.</div>
             </div>
           </div>
           {% endif %}
 
+          <!-- Legal Disclaimer -->
+          <div class="disclaimer-section mb-4">
+            <div class="disclaimer-card p-4" style="background: linear-gradient(135deg, rgba(255, 243, 205, 0.3), rgba(255, 236, 179, 0.3)); border: 1px solid #ffc107; border-radius: 12px; border-left: 4px solid #ffc107;">
+              <div class="d-flex align-items-start">
+                <div class="disclaimer-icon me-3 flex-shrink-0" style="width: 40px; height: 40px; background: linear-gradient(135deg, #ffc107, #fd7e14); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                  <i class="fas fa-balance-scale text-white" style="font-size: 1rem;"></i>
+                </div>
+                <div>
+                  <h6 class="fw-semibold text-dark mb-2">
+                    <i class="fas fa-info-circle me-2 text-warning"></i>
+                    Legal Disclaimer
+                  </h6>
+                  <div class="disclaimer-text text-muted" style="font-size: 0.9rem; line-height: 1.5;">
+                    This is a system for <strong>educational and reference purposes only</strong>. This is a system for reference and educational purposes. The risk clause descriptions and categorizations are not official legal opinions. As the model is a prototype, the analysis results may contain errors or omissions. For any significant contract or legal consideration,  <strong>please consult a qualified legal professional</strong>.
+                  </div>
+                  
+                  <!-- Acknowledgment Checkbox -->
+                  <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="disclaimerAcknowledge" required style="border: 2px solid #ffc107;">
+                    <label class="form-check-label fw-medium text-dark" for="disclaimerAcknowledge">
+                      I understand and acknowledge the limitations of this analysis tool
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Action Buttons -->
           <div class="action-buttons d-flex gap-3 justify-content-center">
-            <button class="btn btn-primary btn-lg px-4 py-3 fw-semibold" type="submit" style="border-radius: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; min-width: 140px;">
+            <button class="btn btn-primary btn-lg px-4 py-3 fw-semibold analyze-btn" type="submit" disabled style="border-radius: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; min-width: 140px;">
               <i class="fas fa-search me-2"></i>
               <span class="button-text">Analyze</span>
               <span class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
@@ -118,7 +146,7 @@
               <i class="fas fa-search text-white"></i>
             </div>
             <h6 class="fw-semibold text-dark">Clause Detection</h6>
-            <small class="text-muted">Automatically identifies and categorizes contract clauses</small>
+            <small class="text-muted">Automatically categorizes common risk clauses in contract</small>
           </div>
         </div>
         <div class="col-md-4">
@@ -127,7 +155,7 @@
               <i class="fas fa-shield-alt text-white"></i>
             </div>
             <h6 class="fw-semibold text-dark">Risk Assessment</h6>
-            <small class="text-muted">Calculates risk scores for identified clauses</small>
+            <small class="text-muted">Briefly explain why these provisions may constitute risk clauses.</small>
           </div>
         </div>
         <div class="col-md-4">
@@ -136,7 +164,7 @@
               <i class="fas fa-chart-line text-white"></i>
             </div>
             <h6 class="fw-semibold text-dark">Detailed Reports</h6>
-            <small class="text-muted">Generates comprehensive analysis reports</small>
+            <small class="text-muted">Generates analysis reports</small>
           </div>
         </div>
       </div>
@@ -210,9 +238,66 @@
     box-shadow: 0 0 0 0.25rem rgba(103, 126, 234, 0.25);
   }
   
-  /* Loading state */
-  .btn:disabled {
-    opacity: 0.7;
+  /* Disclaimer section styling */
+  .disclaimer-section {
+    margin: 2rem 0;
+  }
+  
+  .disclaimer-card {
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  
+  .disclaimer-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 193, 7, 0.2);
+  }
+  
+  .disclaimer-icon {
+    transition: transform 0.3s ease;
+  }
+  
+  .disclaimer-card:hover .disclaimer-icon {
+    transform: scale(1.1);
+  }
+  
+  .form-check-input:checked {
+    background-color: #ffc107;
+    border-color: #ffc107;
+  }
+  
+  .form-check-input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+  }
+  
+  .analyze-btn:disabled {
+    background: #6c757d !important;
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+  
+  .analyze-btn:disabled:hover {
+    box-shadow: none !important;
+  }
+  
+  /* Enhanced checkbox styling */
+  .form-check-input {
+    width: 1.2em;
+    height: 1.2em;
+    margin-top: 0.2em;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+  
+  .form-check-input:hover {
+    border-color: #fd7e14;
+  }
+  
+  .form-check-label {
+    margin-left: 0.5rem;
+    cursor: pointer;
+    user-select: none;
   }
   
   @media (max-width: 768px) {
@@ -246,9 +331,26 @@ document.addEventListener('DOMContentLoaded', function() {
   const selectedFileInfo = document.querySelector('.selected-file-info');
   const fileName = document.querySelector('.file-name');
   const form = document.querySelector('.upload-form');
-  const submitBtn = document.querySelector('button[type="submit"]');
+  const submitBtn = document.querySelector('.analyze-btn');
   const buttonText = document.querySelector('.button-text');
   const spinner = document.querySelector('.spinner-border');
+  const disclaimerCheckbox = document.getElementById('disclaimerAcknowledge');
+
+  // Check if both file is selected and disclaimer is acknowledged
+  function updateSubmitButton() {
+    const hasFile = fileInput.files.length > 0;
+    const disclaimerAccepted = disclaimerCheckbox.checked;
+    
+    if (hasFile && disclaimerAccepted) {
+      submitBtn.disabled = false;
+      submitBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+      submitBtn.style.cursor = 'pointer';
+    } else {
+      submitBtn.disabled = true;
+      submitBtn.style.background = '#6c757d';
+      submitBtn.style.cursor = 'not-allowed';
+    }
+  }
 
   // File selection handling
   fileInput.addEventListener('change', function(e) {
@@ -264,6 +366,19 @@ document.addEventListener('DOMContentLoaded', function() {
       selectedFileInfo.style.display = 'none';
       uploadDisplay.style.borderColor = '#dee2e6';
       uploadDisplay.style.background = '#f8f9fa';
+    }
+    updateSubmitButton();
+  });
+
+  // Disclaimer checkbox handling
+  disclaimerCheckbox.addEventListener('change', function() {
+    updateSubmitButton();
+    
+    // Add visual feedback
+    if (this.checked) {
+      this.parentElement.style.opacity = '0.8';
+    } else {
+      this.parentElement.style.opacity = '1';
     }
   });
 
@@ -292,11 +407,43 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Form submission loading state
-  form.addEventListener('submit', function() {
+  form.addEventListener('submit', function(e) {
+    // Double-check requirements before submission
+    if (!fileInput.files.length || !disclaimerCheckbox.checked) {
+      e.preventDefault();
+      
+      // Show error message
+      let errorMsg = '';
+      if (!fileInput.files.length) errorMsg += 'Please select a file. ';
+      if (!disclaimerCheckbox.checked) errorMsg += 'Please acknowledge the legal disclaimer. ';
+      
+      // Create temporary error alert
+      const alertDiv = document.createElement('div');
+      alertDiv.className = 'alert alert-danger mt-3';
+      alertDiv.innerHTML = `
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Missing Requirements:</strong> ${errorMsg}
+      `;
+      
+      form.appendChild(alertDiv);
+      
+      // Remove alert after 5 seconds
+      setTimeout(() => {
+        alertDiv.remove();
+      }, 5000);
+      
+      return false;
+    }
+    
+    // Proceed with submission
     submitBtn.disabled = true;
     buttonText.textContent = 'Analyzing...';
     spinner.classList.remove('d-none');
+    submitBtn.style.background = '#6c757d';
   });
+
+  // Initialize button state
+  updateSubmitButton();
 });
 </script>
 {% endblock %}
