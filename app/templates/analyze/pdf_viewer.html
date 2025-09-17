@@ -96,13 +96,14 @@
         pointer-events: none;
         transition: all 0.3s ease;
         border: 1px solid rgba(255,255,255,0.5);
-        backdrop-filter: blur(1px);
+        opacity: 0.2;
       }
       
       .hl:hover {
         mix-blend-mode: normal;
         z-index: 10;
         transform: scale(1.02);
+        opacity: 0.55;
       }
       
       /* Enhanced Category-specific styling with distinct colors */
@@ -114,7 +115,7 @@
       
       .hl[data-category*="liability"] {
         background-color: rgba(253, 126, 20, 0.4) !important;
-        border: 2px solid #fd7e14 !important;
+        border: 2px solid #F7A8FF !important;
         box-shadow: 0 0 12px rgba(253, 126, 20, 0.6) !important;
       }
       
@@ -130,11 +131,7 @@
         box-shadow: 0 0 12px rgba(111, 66, 193, 0.6) !important;
       }
       
-      .hl[data-category*="warranty"] {
-        background-color: rgba(13, 202, 240, 0.4) !important;
-        border: 2px solid #0dcaf0 !important;
-        box-shadow: 0 0 12px rgba(13, 202, 240, 0.6) !important;
-      }
+
       
       .hl[data-category*="confidential"] {
         background-color: rgba(102, 16, 242, 0.4) !important;

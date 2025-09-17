@@ -114,4 +114,4 @@ Static assets (`app/static/`) contain CSS/JS for visual polish.
 
 ---
 
-This doc should give you (and future collaborators) enough context to navigate the codebase quickly. For deeper implementation details, open the referenced modules��each keeps functions small and annotated for easier comprehension.
+This doc should give you (and future collaborators) enough context to navigate the codebase quickly. For deeper implementation details, open the referenced modules each keeps functions small and annotated for easier comprehension.

@@ -21,12 +21,11 @@ DEFAULT_LABELS = [
 
 
 CATEGORY_COLOR_MAP: Dict[str, str] = {
-    "payment terms": "#E3F2FD",
-    "liability & exclusions": "#FCE4EC",
-    "termination": "#E8F5E9",
-    "intellectual property": "#FFF3E0",
-    "confidentiality": "#EDE7F6",
-    "other": "#FFF9C4",
+    "payment": "#FFE0B2",
+    "liability&exclusions": "#F7A8FF",
+    "termination": "#C8E6C9",
+    "ip": "#D1C4E9",
+    "confidentiality": "#BBDEFB",
 }
 DEFAULT_HIT_COLOR = "#FFF9C4"
 

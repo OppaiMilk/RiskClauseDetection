@@ -35,9 +35,8 @@ def reanalyze(analysis_id: int):
     # Re-run using the same contract file
     from ...services.parser import parse_document
     from ...services.inference import classify_text, model_display_name
+    from ...services.summarizer import generate_overall_summary
     from ...models import Hit, Summary
-    from flask import current_app
-    import os
 
     contract = a.contract
     if not os.path.exists(contract.path):
@@ -62,6 +61,7 @@ def reanalyze(analysis_id: int):
     db.session.add(new_a)
     db.session.flush()
 
+    hits_by_category = {}
     for sp in spans:
         db.session.add(Hit(
             analysis_id=new_a.id,
@@ -73,6 +73,14 @@ def reanalyze(analysis_id: int):
             text_excerpt=sp.text,
             ambiguous=sp.prob < (float(settings.get("threshold", 0.6)) + 0.05),
         ))
+        hits_by_category.setdefault(sp.category, []).append(sp.text)
+
+    summary_text = ""
+    if settings.get("enable_gemini", False):
+        summary_text = generate_overall_summary(hits_by_category, settings.get("gemini_model", "gemini-2.0-flash"))
+        if summary_text:
+            db.session.add(Summary(analysis_id=new_a.id, output_text=summary_text))
+
     db.session.commit()
 
     flash("Re-analysis completed.", "success")

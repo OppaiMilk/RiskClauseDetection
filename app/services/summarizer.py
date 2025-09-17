@@ -1,5 +1,6 @@
 import os
 from typing import Dict, List
+import google.generativeai as genai
 
 
 def _get_client():
@@ -33,13 +34,35 @@ def _safe_text(resp) -> str:
     return ""
 
 
+
+def _fallback_summary(hits_by_category: Dict[str, List[str]]) -> str:
+    total_hits = sum(len(v or []) for v in hits_by_category.values())
+    if total_hits == 0:
+        return ("**Quick risk snapshot (no AI)**\n\n- **Overview** - No risky clauses detected by the classifier. Review key terms manually to confirm the contract still fits your needs.")
+
+    sorted_items = sorted(((cat or 'Uncategorised', len(texts or [])) for cat, texts in hits_by_category.items()), key=lambda x: x[1], reverse=True)
+    lines = ["**Quick risk snapshot (no AI)**\n"]
+    for cat, count in sorted_items[:6]:
+        plural = 's' if count != 1 else ''
+        lines.append(f"- **{cat}** - {count} clause{plural} flagged; make sure obligations stay workable.")
+    return "\n".join(lines)
+
+
+
+
+
 def generate_overall_summary(hits_by_category: Dict[str, List[str]], model_name: str = "gemini-2.0-flash") -> str:
     genai = _get_client()
     if genai is None:
-        return "Gemini API key not configured. Set GEMINI_API_KEY to enable summaries."
+        return _fallback_summary(hits_by_category)
 
     prompt_lines = [
-        "You are a legal assistant. Given detected contract clauses grouped by category, write a concise 4-6 bullet risk summary in plain English for a Malaysian context. Avoid legalese. Keep each bullet <= 20 words. Categories: Payment Terms, Liability & Exclusions, Termination, Intellectual Property, Confidentiality.",
+        "You are a legal assistant. Produce a polished Markdown risk summary for a Malaysian business reader.",
+        "Formatting rules:",
+        "- Begin with a single bold overview line summarising overall risk.",
+        "- Follow with 4-6 bullet points.",
+        "- Each bullet starts with a bold category name, an en dash, then 1-2 short sentences in plain English.",
+        "- Keep wording friendly, avoid legal jargon or disclaimers.",
         "",
         "Detected clauses:",
     ]
@@ -62,7 +85,11 @@ def generate_overall_summary(hits_by_category: Dict[str, List[str]], model_name:
 def generate_clause_explanation(category: str, clause_text: str, model_name: str = "gemini-2.0-flash") -> str:
     genai = _get_client()
     if genai is None:
-        return "Gemini API key not configured."
+        snippet = (clause_text or '').strip().replace('\n', ' ')[:220]
+        note = 'Gemini disabled; review manually.'
+        if snippet:
+            return f"{note} Key excerpt: {snippet}"
+        return note
 
     instruction = (
         f"Explain in 2-3 sentences why this {category} clause may pose risk in a Malaysian contract. "

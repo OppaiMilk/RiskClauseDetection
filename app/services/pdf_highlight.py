@@ -4,11 +4,11 @@ import re
 
 
 CATEGORY_STYLE_MAP: Dict[str, Dict[str, str]] = {
-    "payment terms": {"fill": "#E3F2FD", "stroke": "#1565C0"},
-    "liability & exclusions": {"fill": "#FCE4EC", "stroke": "#AD1457"},
-    "termination": {"fill": "#E8F5E9", "stroke": "#2E7D32"},
-    "intellectual property": {"fill": "#FFF3E0", "stroke": "#EF6C00"},
-    "confidentiality": {"fill": "#EDE7F6", "stroke": "#5E35B1"},
+    "payment": {"fill": "#FFE0B2", "stroke": "#F57C00"},
+    "liability&exclusions": {"fill": "#F7A8FF", "stroke": "#C62828"},
+    "termination": {"fill": "#C8E6C9", "stroke": "#2E7D32"},
+    "ip": {"fill": "#D1C4E9", "stroke": "#4527A0"},
+    "confidentiality": {"fill": "#BBDEFB", "stroke": "#1565C0"},
 }
 DEFAULT_STYLE = {"fill": "#FFF9C4", "stroke": "#F9A825"}
 

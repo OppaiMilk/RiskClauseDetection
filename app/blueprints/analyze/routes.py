@@ -37,6 +37,34 @@ def risk_level_summary(prob: float) -> tuple[str, str]:
         return ("Medium", "Worth a closer look to keep things balanced.")
     return ("Low", "Model sees limited risk, but give it a quick read.")
 
+
+def render_summary_html(text: str) -> str:
+    if not text:
+        return ""
+    try:
+        import markdown as _markdown
+    except ImportError:
+        import html
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        html_parts: list[str] = []
+        in_list = False
+        for line in lines:
+            if line.startswith('- '):
+                if not in_list:
+                    html_parts.append('<ul>')
+                    in_list = True
+                html_parts.append(f"<li>{html.escape(line[2:].strip())}</li>")
+            else:
+                if in_list:
+                    html_parts.append('</ul>')
+                    in_list = False
+                html_parts.append(f"<p>{html.escape(line)}</p>")
+        if in_list:
+            html_parts.append('</ul>')
+        return ''.join(html_parts)
+    else:
+        return _markdown.markdown(text, extensions=["extra"])
+
 ALLOWED_EXT = {".pdf", ".docx"}
 
 
@@ -128,6 +156,8 @@ def run_analysis():
 def view_result(analysis_id: int):
     analysis = Analysis.query.get_or_404(analysis_id)
     contract = analysis.contract
+    config = current_app.config
+    settings = getattr(current_app, 'settings', config.get('SETTINGS', {}))
     # Read full text again for preview
     try:
         with open(contract.path, "rb") as rf:
@@ -164,6 +194,8 @@ def view_result(analysis_id: int):
 
     summary_obj = Summary.query.filter_by(analysis_id=analysis.id).order_by(Summary.created_at.desc()).first()
     summary_text = summary_obj.output_text if summary_obj else ""
+    summary_html = render_summary_html(summary_text)
+    enable_gemini = bool(settings.get("enable_gemini", False))
 
     is_pdf = os.path.splitext(contract.path.lower())[1] == ".pdf"
     # Compute page numbers for hits for PDF jump links
@@ -203,9 +235,37 @@ def view_result(analysis_id: int):
         category_intros=category_intros,
         hit_index=hit_index,
         summary_text=summary_text,
+        summary_html=summary_html,
+        enable_gemini=enable_gemini,
         is_pdf=is_pdf,
         hit_pages=hit_pages,
     )
+
+
+
+
+@bp.route("/<int:analysis_id>/summary", methods=["POST"])
+def generate_summary(analysis_id: int):
+    analysis = Analysis.query.get_or_404(analysis_id)
+    config = current_app.config
+    settings = getattr(current_app, "settings", config.get("SETTINGS", {}))
+    if not settings.get("enable_gemini", False):
+        flash("Enable Gemini in Settings to generate summaries.", "warning")
+        return redirect(url_for("analyze.view_result", analysis_id=analysis_id))
+
+    hits = Hit.query.filter_by(analysis_id=analysis.id).order_by(Hit.start_char.asc()).all()
+    hits_by_category: Dict[str, list[str]] = {}
+    for h in hits:
+        hits_by_category.setdefault(h.category, []).append(h.text_excerpt)
+
+    summary_text = generate_overall_summary(hits_by_category, settings.get("gemini_model", "gemini-2.0-flash"))
+    if summary_text:
+        db.session.add(Summary(analysis_id=analysis.id, output_text=summary_text))
+        db.session.commit()
+        flash("AI summary generated.", "success")
+    else:
+        flash("Gemini did not return a summary this time.", "warning")
+    return redirect(url_for("analyze.view_result", analysis_id=analysis_id))
 
 
 @bp.route("/<int:analysis_id>/export", methods=["POST"]) 
@@ -302,10 +362,10 @@ def pdf_viewer(analysis_id: int, mode: str):
         return redirect(url_for("analyze.view_result", analysis_id=analysis_id))
     if mode == "highlighted":
         file_url = url_for("analyze.view_pdf_highlighted", analysis_id=analysis_id)
-        overlay = False
+        overlay = True
     else:
         file_url = url_for("analyze.view_pdf", analysis_id=analysis_id)
-        overlay = True
+        overlay = False
     coords_url = url_for("analyze.pdf_coords", analysis_id=analysis_id, mode=mode)
     return render_template("analyze/pdf_viewer.html", file_url=file_url, coords_url=coords_url, overlay=overlay)
 
