@@ -1,4 +1,4 @@
-# Contract Risk Detection 每 Code Tour
+# Contract Risk Detection  Code Tour
 
 Below is a walkthrough of the major modules that power the contract clause risk assistant. Use this as a map when you need to modify behaviour, swap models, or wire the app into another environment.
 
@@ -6,12 +6,12 @@ Below is a walkthrough of the major modules that power the contract clause risk 
 
 ## 1. High-Level Flow
 
-1. **Upload** 每 User sends a PDF/DOCX via `app/blueprints/analyze/routes.py::run_analysis`.
-2. **Parse** 每 `app/services/parser.py` extracts plain text + metadata (page counts).
-3. **Classify** 每 `app/services/inference.py` loads `StudySeur/LegalBERT-finetuning-Malaysia` (or any HF model) and returns risky spans with probabilities.
-4. **Persist** 每 `Contract`, `Analysis`, `Hit`, and optional `Summary` rows are written via SQLAlchemy.
-5. **Render** 每 Results view (`app/templates/analyze/result.html`) shows category intros, clause risk levels, PDF highlights, Gemini explanations, etc.
-6. **History / Export** 每 Users can re-run, delete, or export reports. Deletes also remove the source upload and generated exports when no other analyses reference them.
+1. **Upload**  User sends a PDF/DOCX via `app/blueprints/analyze/routes.py::run_analysis`.
+2. **Parse**  `app/services/parser.py` extracts plain text + metadata (page counts).
+3. **Classify**  `app/services/inference.py` loads `StudySeur/LegalBERT-finetuning-Malaysia` (or any HF model) and returns risky spans with probabilities.
+4. **Persist**  `Contract`, `Analysis`, `Hit`, and optional `Summary` rows are written via SQLAlchemy.
+5. **Render**  Results view (`app/templates/analyze/result.html`) shows category intros, clause risk levels, PDF highlights, Gemini explanations, etc.
+6. **History / Export**  Users can re-run, delete, or export reports. Deletes also remove the source upload and generated exports when no other analyses reference them.
 
 ---
 
@@ -42,21 +42,21 @@ Defined in `.env.example`:
 ## 4. Blueprints & Views
 
 ### Analyze (`app/blueprints/analyze/routes.py`)
-- `/analyze/` (**GET**) 每 upload form.
-- `/analyze/run` (**POST**) 每 validates upload, saves file, calls parser + classifier, writes DB rows.
-- `/analyze/<analysis_id>` 每 composes the results page:
+- `/analyze/` (**GET**)  upload form.
+- `/analyze/run` (**POST**)  validates upload, saves file, calls parser + classifier, writes DB rows.
+- `/analyze/<analysis_id>`  composes the results page:
   - Builds highlighted HTML preview (`inject_highlights`), PDF jump support, category counts.
   - Adds plain-language category intros (`CATEGORY_TIPS`) and per-hit risk labels via `risk_level_summary`.
   - Loads Gemini summary when enabled.
-- `/export` endpoints 每 produces HTML/PDF reports (`app/services/report.py`).
-- `/pdf/*` endpoints 每 generate or stream highlighted PDFs (`app/services/pdf_highlight.py`).
-- `/explain/<hit_id>` 每 on-demand Gemini clause explanation.
+- `/export` endpoints  produces HTML/PDF reports (`app/services/report.py`).
+- `/pdf/*` endpoints  generate or stream highlighted PDFs (`app/services/pdf_highlight.py`).
+- `/explain/<hit_id>`  on-demand Gemini clause explanation.
 
 ### History (`app/blueprints/history/routes.py`)
-- `/history/` 每 lists analyses, showing top category per run.
-- `/history/<id>` 每 shortcut to the result view.
-- `/history/<id>/reanalyze` 每 reprocesses the same contract with current settings/model.
-- `/history/<id>/delete` 每 removes the analysis **and** cleans up:
+- `/history/`  lists analyses, showing top category per run.
+- `/history/<id>`  shortcut to the result view.
+- `/history/<id>/reanalyze`  reprocesses the same contract with current settings/model.
+- `/history/<id>/delete`  removes the analysis **and** cleans up:
   - If it was the last analysis for that contract, deletes the contract row, uploaded file, and any generated reports (HTML/PDF/highlighted PDF).
   - Uses guarded `safe_remove` helper with logging.
 
@@ -100,8 +100,8 @@ Static assets (`app/static/`) contain CSS/JS for visual polish.
 
 ## 7. Generated Assets
 
-- `uploads/` 每 raw contract uploads (ignored by Git). Automatically deleted when their final analysis is removed.
-- `reports/` 每 exported HTML/PDF/highlighted PDFs (also Git-ignored and cleaned up with deletions).
+- `uploads/`  raw contract uploads (ignored by Git). Automatically deleted when their final analysis is removed.
+- `reports/`  exported HTML/PDF/highlighted PDFs (also Git-ignored and cleaned up with deletions).
 
 ---
 
@@ -114,4 +114,4 @@ Static assets (`app/static/`) contain CSS/JS for visual polish.
 
 ---
 
-This doc should give you (and future collaborators) enough context to navigate the codebase quickly. For deeper implementation details, open the referenced modules〞each keeps functions small and annotated for easier comprehension.
+This doc should give you (and future collaborators) enough context to navigate the codebase quickly. For deeper implementation details, open the referenced modules嚙踝蕭each keeps functions small and annotated for easier comprehension.
