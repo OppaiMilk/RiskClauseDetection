@@ -1,0 +1,21 @@
+.preview-container {
+  max-height: 70vh;
+  overflow: auto;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #eee;
+}
+.preview-text { white-space: pre-wrap; }
+.highlight { padding: 1px 2px; border-radius: 3px; color: #1f2933; }
+.pulse { box-shadow: 0 0 0 0 rgba(0,0,0,0.2); animation: pulse 1s; }
+@keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(59,130,246,.7)} 100%{box-shadow:0 0 0 12px rgba(59,130,246,0)} }
+
+.legend { display:inline-block; width: 12px; height: 12px; border-radius: 999px; margin-right: 6px; border: 1px solid rgba(0,0,0,0.15); }
+
+.pdf-frame {
+  width: 100%;
+  height: 70vh;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}

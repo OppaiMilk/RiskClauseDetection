@@ -1,0 +1,24 @@
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+
+# Application state
+app.db
+instance/*.db
+instance/*.sqlite
+
+# Generated files
+reports/
+uploads/*
+!uploads/.gitkeep
+
+# Hugging Face cache markers (if any)
+*.lock
+
+# Misc
+*.log
+!reports/.gitkeep

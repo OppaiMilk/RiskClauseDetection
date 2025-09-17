@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- Header Section -->
+<div class="history-header mb-4">
+  <div class="d-flex justify-content-between align-items-center p-4 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <div class="d-flex align-items-center">
+      <div class="icon-wrapper me-3" style="width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+        <i class="fas fa-history text-white"></i>
+      </div>
+      <div>
+        <h3 class="mb-1 fw-bold">Analysis History</h3>
+        <p class="mb-0 opacity-75">Track and manage your contract analysis records</p>
+      </div>
+    </div>
+    <a href="{{ url_for('analyze.upload_form') }}" class="btn btn-light btn-lg px-4 py-2 shadow-sm">
+      <i class="fas fa-plus-circle me-2"></i>New Analysis
+    </a>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm" style="border-radius: 16px; overflow: hidden;">
+  <div class="card-body p-0">
+    {% if analyses %}
+    <div class="table-responsive d-none d-lg-block">
+      <table class="table table-hover mb-0">
+        <thead style="background: linear-gradient(135deg, #f8f9fa, #e9ecef);">
+          <tr>
+            <th class="border-0 py-3 px-4 fw-semibold text-dark"><i class="fas fa-file-contract me-2 text-primary"></i>File</th>
+            <th class="border-0 py-3 px-4 fw-semibold text-dark"><i class="fas fa-clock me-2 text-success"></i>Finished</th>
+            <th class="border-0 py-3 px-4 fw-semibold text-dark"><i class="fas fa-list-ol me-2 text-info"></i>Total Clauses</th>
+            <th class="border-0 py-3 px-4 fw-semibold text-dark"><i class="fas fa-tag me-2 text-warning"></i>Top Category</th>
+            <th class="border-0 py-3 px-4 fw-semibold text-dark text-center"><i class="fas fa-cog me-2"></i>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in analyses %}
+          <tr class="border-bottom analysis-row" style="transition: all 0.2s ease;">
+            <td class="py-3 px-4">
+              <div class="d-flex align-items-center">
+                <div class="file-icon me-3" style="width: 40px; height: 40px; background: linear-gradient(135deg, #4facfe, #00f2fe); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                  <i class="fas fa-file-alt text-white"></i>
+                </div>
+                <div>
+                  <div class="fw-semibold text-dark">{{ a.contract.filename }}</div>
+                  <small class="text-muted">Contract Document</small>
+                </div>
+              </div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="d-flex flex-column">
+                <span class="fw-medium text-dark">{{ a.finished_at.strftime('%Y-%m-%d') }}</span>
+                <small class="text-muted">{{ a.finished_at.strftime('%H:%M') }}</small>
+              </div>
+            </td>
+            <td class="py-3 px-4">
+              <span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #43e97b, #38f9d7); font-size: 0.875rem;">
+                {{ a.total_hits }}
+              </span>
+            </td>
+            <td class="py-3 px-4">
+              <span class="category-badge px-3 py-2 rounded-pill" style="background: linear-gradient(135deg, #ffecd2, #fcb69f); color: #8b5a2b; font-weight: 500; font-size: 0.875rem;">
+                {{ top_categories[a.id] }}
+              </span>
+            </td>
+            <td class="py-3 px-4">
+              <div class="btn-group" role="group">
+                <a class="btn btn-sm btn-outline-primary rounded-pill px-3" href="{{ url_for('history.view_analysis', analysis_id=a.id) }}" style="border-color: #4facfe; color: #4facfe;">
+                  <i class="fas fa-eye me-1"></i>View
+                </a>
+                <form method="post" action="{{ url_for('history.reanalyze', analysis_id=a.id) }}" style="display:inline;" class="ms-1">
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" type="submit" style="border-color: #6c757d;">
+                    <i class="fas fa-sync-alt me-1"></i>Re-analyze
+                  </button>
+                </form>
+                <form method="post" action="{{ url_for('history.delete_analysis', analysis_id=a.id) }}" style="display:inline;" class="ms-1" onsubmit="return confirm('Delete this analysis?');">
+                  <button class="btn btn-sm btn-outline-danger rounded-pill px-3" type="submit">
+                    <i class="fas fa-trash-alt me-1"></i>Delete
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div class="d-lg-none">
+      {% for a in analyses %}
+      <div class="mobile-analysis-card border rounded-3 p-3 mb-3 shadow-sm" style="background: #ffffff;">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <h6 class="fw-semibold text-dark mb-1">{{ a.contract.filename }}</h6>
+            <small class="text-muted">{{ a.finished_at.strftime('%Y-%m-%d %H:%M') }}</small>
+          </div>
+          <span class="badge bg-primary-subtle text-primary">{{ a.total_hits }} hits</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <i class="fas fa-tag text-warning"></i>
+          <span class="fw-medium text-dark">{{ top_categories[a.id] }}</span>
+        </div>
+        <div class="d-flex gap-2">
+          <a class="btn btn-sm btn-outline-primary flex-grow-1" href="{{ url_for('history.view_analysis', analysis_id=a.id) }}">
+            <i class="fas fa-eye me-1"></i>View
+          </a>
+          <form method="post" action="{{ url_for('history.reanalyze', analysis_id=a.id) }}" class="flex-grow-1">
+            <button class="btn btn-sm btn-outline-secondary w-100" type="submit">
+              <i class="fas fa-sync-alt me-1"></i>Re-analyze
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('history.delete_analysis', analysis_id=a.id) }}" class="flex-grow-1" onsubmit="return confirm('Delete this analysis?');">
+            <button class="btn btn-sm btn-outline-danger w-100" type="submit">
+              <i class="fas fa-trash-alt me-1"></i>Delete
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Quick stats -->
+    <div class="p-4 border-top" style="background: #f8f9fa;">
+      <div class="row g-3 text-center">
+        <div class="col-md-4">
+          <div class="stat-item">
+            <div class="stat-icon mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+              <i class="fas fa-database text-white"></i>
+            </div>
+            <h4 class="fw-bold text-dark mb-1">{{ analyses|length }}</h4>
+            <small class="text-muted">Total Analyses</small>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stat-item">
+            {% set total_clauses = analyses|sum(attribute='total_hits') %}
+            <div class="stat-icon mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #43e97b, #38f9d7); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+              <i class="fas fa-list-ol text-white"></i>
+            </div>
+            <h4 class="fw-bold text-dark mb-1">{{ total_clauses }}</h4>
+            <small class="text-muted">Total Clauses</small>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stat-item">
+            <div class="stat-icon mb-2" style="width: 40px; height: 40px; background: linear-gradient(135deg, #ff9a9e, #fad0c4); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+              <i class="fas fa-clock text-white"></i>
+            </div>
+            <h4 class="fw-bold text-dark mb-1">{{ analyses[0].finished_at.strftime('%m/%d') }}</h4>
+            <small class="text-muted">Last Analysis</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+      <div class="empty-state-icon mb-3" style="width: 80px; height: 80px; background: #f8f9fa; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+        <i class="fas fa-folder-open text-muted" style="font-size: 2rem;"></i>
+      </div>
+      <h5 class="text-muted mb-2">No analyses yet</h5>
+      <p class="text-muted">Upload your first contract to start building history.</p>
+      <a href="{{ url_for('analyze.upload_form') }}" class="btn btn-primary">
+        <i class="fas fa-upload me-1"></i>Upload Contract
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .history-header { margin-bottom: 2rem; }
+  .analysis-row:hover { background-color: rgba(103, 126, 234, 0.05) !important; transform: translateX(5px); }
+  .mobile-analysis-card:hover { background-color: rgba(103, 126, 234, 0.05); }
+  .btn-group .btn { transition: all 0.2s ease; }
+  .btn-group .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+  .file-icon { transition: transform 0.3s ease; }
+  .analysis-row:hover .file-icon { transform: scale(1.1); }
+  .empty-state-icon { transition: transform 0.3s ease; }
+  .empty-state-icon:hover { transform: scale(1.1); }
+  .stat-item { padding: 1rem 0; transition: transform 0.2s ease; }
+  .stat-item:hover { transform: translateY(-5px); }
+  .stat-item:hover .stat-icon { transform: scale(1.1); }
+  @media (max-width: 768px) {
+    .history-header .d-flex { flex-direction: column; text-align: center; gap: 1rem; }
+    .stat-item { margin-bottom: 1rem; }
+  }
+  @media (max-width: 991px) {
+    .table-responsive { scrollbar-width: thin; scrollbar-color: #667eea #f1f1f1; }
+    .table-responsive::-webkit-scrollbar { height: 8px; }
+    .table-responsive::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    .table-responsive::-webkit-scrollbar-thumb { background: #667eea; border-radius: 10px; }
+  }
+</style>
+{% endblock %}

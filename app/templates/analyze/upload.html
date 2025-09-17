@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- Header Section -->
+<div class="upload-header mb-5">
+  <div class="text-center">
+    <div class="upload-icon mb-3" style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+      <i class="fas fa-file-upload text-white" style="font-size: 2rem;"></i>
+    </div>
+    <h2 class="fw-bold text-dark mb-2">Analyze Contract</h2>
+    <p class="text-muted mb-0">Upload your contract document for comprehensive analysis</p>
+  </div>
+</div>
+
+<!-- Upload Form -->
+<div class="row justify-content-center">
+  <div class="col-lg-8 col-xl-6">
+    <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="card-body p-5">
+        <form class="upload-form" action="{{ url_for('analyze.run_analysis') }}" method="post" enctype="multipart/form-data">
+          <!-- File Upload Section -->
+          <div class="upload-area mb-4">
+            <label for="file" class="form-label fw-semibold text-dark mb-3 d-flex align-items-center">
+              <i class="fas fa-cloud-upload-alt me-2 text-primary"></i>
+              Upload Document
+            </label>
+            
+            <!-- Custom File Upload -->
+            <div class="file-upload-wrapper position-relative">
+              <input class="form-control file-input" type="file" id="file" name="file" required 
+                     accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                     style="position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2;">
+              
+              <div class="file-upload-display" style="border: 2px dashed #dee2e6; border-radius: 12px; padding: 3rem 2rem; text-align: center; background: #f8f9fa; transition: all 0.3s ease;">
+                <div class="upload-icon-large mb-3" style="width: 60px; height: 60px; background: linear-gradient(135deg, #4facfe, #00f2fe); border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                  <i class="fas fa-file-alt text-white" style="font-size: 1.5rem;"></i>
+                </div>
+                <div class="upload-text">
+                  <h5 class="text-dark mb-2 fw-semibold">Drop your file here or click to browse</h5>
+                  <p class="text-muted mb-0">Supports PDF and DOCX files</p>
+                </div>
+                <div class="selected-file-info mt-3" style="display: none;">
+                  <div class="selected-file-display p-3 rounded" style="background: rgba(103, 126, 234, 0.1); border: 1px solid rgba(103, 126, 234, 0.2);">
+                    <div class="d-flex align-items-center justify-content-center">
+                      <i class="fas fa-file text-primary me-2"></i>
+                      <span class="file-name fw-medium text-dark"></span>
+                      <i class="fas fa-check-circle text-success ms-2"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- File Requirements -->
+            <div class="file-requirements mt-3">
+              <div class="d-flex align-items-center flex-wrap gap-3">
+                <small class="text-muted d-flex align-items-center">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Max {{ settings.upload_max_mb }} MB
+                </small>
+                <small class="text-muted d-flex align-items-center">
+                  <i class="fas fa-file-pdf me-1 text-danger"></i>
+                  PDF
+                </small>
+                <small class="text-muted d-flex align-items-center">
+                  <i class="fas fa-file-word me-1 text-primary"></i>
+                  DOCX
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gemini Status Alert -->
+          {% if not settings.enable_gemini %}
+          <div class="alert alert-warning d-flex align-items-center mb-4" style="border-radius: 12px; border: none; background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">
+            <i class="fas fa-exclamation-triangle me-3" style="font-size: 1.25rem;"></i>
+            <div>
+              <strong>AI Summaries Disabled</strong>
+              <div class="small mt-1">Gemini summaries are currently disabled. Enable them in Settings for enhanced analysis.</div>
+            </div>
+          </div>
+          {% else %}
+          <div class="alert alert-info d-flex align-items-center mb-4" style="border-radius: 12px; border: none; background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+            <i class="fas fa-robot me-3" style="font-size: 1.25rem;"></i>
+            <div>
+              <strong>AI-Powered Analysis Ready</strong>
+              <div class="small mt-1">Your document will be analyzed with advanced AI summaries enabled.</div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Action Buttons -->
+          <div class="action-buttons d-flex gap-3 justify-content-center">
+            <button class="btn btn-primary btn-lg px-4 py-3 fw-semibold" type="submit" style="border-radius: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; min-width: 140px;">
+              <i class="fas fa-search me-2"></i>
+              <span class="button-text">Analyze</span>
+              <span class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+            </button>
+            <a class="btn btn-outline-secondary btn-lg px-4 py-3 fw-semibold" href="{{ url_for('main.index') }}" style="border-radius: 12px; min-width: 120px;">
+              <i class="fas fa-times me-2"></i>
+              Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features Section -->
+<div class="row mt-5">
+  <div class="col-12">
+    <div class="features-section text-center">
+      <h5 class="text-muted mb-4">What happens during analysis?</h5>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="feature-item">
+            <div class="feature-icon mb-3" style="width: 50px; height: 50px; background: linear-gradient(135deg, #4facfe, #00f2fe); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+              <i class="fas fa-search text-white"></i>
+            </div>
+            <h6 class="fw-semibold text-dark">Clause Detection</h6>
+            <small class="text-muted">Automatically identifies and categorizes contract clauses</small>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="feature-item">
+            <div class="feature-icon mb-3" style="width: 50px; height: 50px; background: linear-gradient(135deg, #43e97b, #38f9d7); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+              <i class="fas fa-shield-alt text-white"></i>
+            </div>
+            <h6 class="fw-semibold text-dark">Risk Assessment</h6>
+            <small class="text-muted">Calculates risk scores for identified clauses</small>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="feature-item">
+            <div class="feature-icon mb-3" style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+              <i class="fas fa-chart-line text-white"></i>
+            </div>
+            <h6 class="fw-semibold text-dark">Detailed Reports</h6>
+            <small class="text-muted">Generates comprehensive analysis reports</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .upload-header {
+    padding: 2rem 0;
+  }
+  
+  .upload-icon {
+    transition: transform 0.3s ease;
+  }
+  
+  .upload-icon:hover {
+    transform: scale(1.05);
+  }
+  
+  .file-upload-wrapper:hover .file-upload-display {
+    border-color: #667eea !important;
+    background: rgba(103, 126, 234, 0.05) !important;
+    transform: translateY(-2px);
+  }
+  
+  .file-upload-display {
+    transition: all 0.3s ease;
+  }
+  
+  .upload-icon-large {
+    transition: transform 0.3s ease;
+  }
+  
+  .file-upload-wrapper:hover .upload-icon-large {
+    transform: scale(1.1);
+  }
+  
+  .btn {
+    transition: all 0.3s ease;
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(103, 126, 234, 0.3);
+  }
+  
+  .btn-outline-secondary:hover {
+    transform: translateY(-2px);
+  }
+  
+  .feature-icon {
+    transition: transform 0.3s ease;
+  }
+  
+  .feature-item:hover .feature-icon {
+    transform: scale(1.1);
+  }
+  
+  .card {
+    transition: transform 0.3s ease;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+  }
+  
+  /* File input enhancements */
+  .file-input:focus + .file-upload-display {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 0.25rem rgba(103, 126, 234, 0.25);
+  }
+  
+  /* Loading state */
+  .btn:disabled {
+    opacity: 0.7;
+  }
+  
+  @media (max-width: 768px) {
+    .upload-header {
+      padding: 1rem 0;
+    }
+    
+    .file-upload-display {
+      padding: 2rem 1rem !important;
+    }
+    
+    .action-buttons {
+      flex-direction: column;
+    }
+    
+    .btn {
+      width: 100%;
+    }
+    
+    .features-section .row {
+      text-align: center;
+    }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fileInput = document.getElementById('file');
+  const uploadDisplay = document.querySelector('.file-upload-display');
+  const uploadText = document.querySelector('.upload-text');
+  const selectedFileInfo = document.querySelector('.selected-file-info');
+  const fileName = document.querySelector('.file-name');
+  const form = document.querySelector('.upload-form');
+  const submitBtn = document.querySelector('button[type="submit"]');
+  const buttonText = document.querySelector('.button-text');
+  const spinner = document.querySelector('.spinner-border');
+
+  // File selection handling
+  fileInput.addEventListener('change', function(e) {
+    if (e.target.files.length > 0) {
+      const file = e.target.files[0];
+      fileName.textContent = file.name;
+      uploadText.style.display = 'none';
+      selectedFileInfo.style.display = 'block';
+      uploadDisplay.style.borderColor = '#28a745';
+      uploadDisplay.style.background = 'rgba(40, 167, 69, 0.1)';
+    } else {
+      uploadText.style.display = 'block';
+      selectedFileInfo.style.display = 'none';
+      uploadDisplay.style.borderColor = '#dee2e6';
+      uploadDisplay.style.background = '#f8f9fa';
+    }
+  });
+
+  // Drag and drop functionality
+  uploadDisplay.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadDisplay.style.borderColor = '#667eea';
+    uploadDisplay.style.background = 'rgba(103, 126, 234, 0.1)';
+  });
+
+  uploadDisplay.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    uploadDisplay.style.borderColor = '#dee2e6';
+    uploadDisplay.style.background = '#f8f9fa';
+  });
+
+  uploadDisplay.addEventListener('drop', function(e) {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      fileInput.files = files;
+      fileInput.dispatchEvent(new Event('change'));
+    }
+    uploadDisplay.style.borderColor = '#dee2e6';
+    uploadDisplay.style.background = '#f8f9fa';
+  });
+
+  // Form submission loading state
+  form.addEventListener('submit', function() {
+    submitBtn.disabled = true;
+    buttonText.textContent = 'Analyzing...';
+    spinner.classList.remove('d-none');
+  });
+});
+</script>
+{% endblock %}

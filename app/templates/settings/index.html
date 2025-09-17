@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- Header Section -->
+<div class="settings-header mb-4">
+  <div class="d-flex align-items-center p-4 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <div class="icon-wrapper me-3" style="width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+      <i class="fas fa-cogs text-white"></i>
+    </div>
+    <div>
+      <h3 class="mb-1 fw-bold">System Settings</h3>
+      <p class="mb-0 opacity-75">Configure your contract analysis system preferences</p>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Form -->
+<form class="settings-form" method="post" enctype="multipart/form-data">
+  <div class="row g-4">
+    <!-- Model & AI Configuration -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
+        <div class="card-header bg-transparent border-0 pb-0 pt-4 px-4">
+          <div class="d-flex align-items-center">
+            <div class="icon-wrapper me-3" style="width: 40px; height: 40px; background: linear-gradient(135deg, #4facfe, #00f2fe); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-brain text-white"></i>
+            </div>
+            <div>
+              <h5 class="card-title mb-1 fw-semibold">AI Model & Thresholds</h5>
+              <p class="text-muted small mb-0">Configure the core analysis engine</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-body px-4 pb-4">
+          <div class="mb-4">
+            <label class="form-label fw-medium text-dark d-flex align-items-center">
+              <i class="fas fa-robot me-2 text-primary"></i>
+              Model Name or Path
+            </label>
+            <input class="form-control custom-input" type="text" name="model_name_or_path" 
+                   value="{{ settings.model_name_or_path }}" 
+                   placeholder="nlpaueb/legal-bert-base-uncased"
+                   style="border-radius: 10px; border: 2px solid #e9ecef; padding: 12px 16px;">
+            <div class="form-text mt-2">
+              <i class="fas fa-info-circle me-1"></i>
+              Set to your fine-tuned model path or Hugging Face model ID
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <label class="form-label fw-medium text-dark d-flex align-items-center">
+              <i class="fas fa-sliders-h me-2 text-success"></i>
+              Classification Threshold
+            </label>
+            <div class="input-group">
+              <input class="form-control custom-input" type="number" step="0.01" min="0" max="1" 
+                     name="threshold" value="{{ settings.threshold }}"
+                     style="border-radius: 10px 0 0 10px; border: 2px solid #e9ecef; padding: 12px 16px;">
+              <span class="input-group-text" style="background: #f8f9fa; border: 2px solid #e9ecef; border-left: none; border-radius: 0 10px 10px 0;">
+                <i class="fas fa-percentage text-muted"></i>
+              </span>
+            </div>
+            <div class="threshold-indicator mt-2">
+              <div class="progress" style="height: 6px; border-radius: 3px;">
+                <div class="progress-bar" role="progressbar" 
+                     style="width: {{ (settings.threshold * 100)|round }}%; background: linear-gradient(90deg, #4facfe, #00f2fe);">
+                </div>
+              </div>
+              <small class="text-muted">Current: {{ (settings.threshold * 100)|round }}%</small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-medium text-dark d-flex align-items-center">
+              <i class="fas fa-window-maximize me-2 text-warning"></i>
+              Merge Window (characters)
+            </label>
+            <input class="form-control custom-input" type="number" name="merge_window_chars" 
+                   value="{{ settings.merge_window_chars }}"
+                   style="border-radius: 10px; border: 2px solid #e9ecef; padding: 12px 16px;">
+            <div class="form-text mt-2">
+              <i class="fas fa-info-circle me-1"></i>
+              Text merging window size for clause detection
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gemini & Upload Settings -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
+        <div class="card-header bg-transparent border-0 pb-0 pt-4 px-4">
+          <div class="d-flex align-items-center">
+            <div class="icon-wrapper me-3" style="width: 40px; height: 40px; background: linear-gradient(135deg, #43e97b, #38f9d7); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-cloud text-white"></i>
+            </div>
+            <div>
+              <h5 class="card-title mb-1 fw-semibold">Summaries & Uploads</h5>
+              <p class="text-muted small mb-0">External services and file handling</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-body px-4 pb-4">
+          <!-- Gemini Toggle -->
+          <div class="gemini-section mb-4 p-3 rounded-3" style="background: linear-gradient(135deg, rgba(67, 233, 123, 0.1), rgba(56, 249, 215, 0.1)); border: 1px solid rgba(67, 233, 123, 0.2);">
+            <div class="form-check form-switch d-flex align-items-center">
+              <input class="form-check-input me-3" type="checkbox" role="switch" id="enable_gemini" 
+                     name="enable_gemini" {% if settings.enable_gemini %}checked{% endif %}
+                     style="width: 3rem; height: 1.5rem;">
+              <label class="form-check-label fw-medium text-dark" for="enable_gemini">
+                <i class="fas fa-magic me-2"></i>Enable Gemini AI Summaries
+              </label>
+            </div>
+            <small class="text-muted ms-5 d-block mt-1">
+              Generate intelligent summaries using Google's Gemini AI
+            </small>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-medium text-dark d-flex align-items-center">
+              <i class="fas fa-gem me-2" style="color: #4285f4;"></i>
+              Gemini Model
+            </label>
+            <input class="form-control custom-input" type="text" name="gemini_model" 
+                   value="{{ settings.gemini_model }}"
+                   style="border-radius: 10px; border: 2px solid #e9ecef; padding: 12px 16px;">
+            <div class="form-text mt-2">
+              <i class="fas fa-key me-1"></i>
+              Set GEMINI_API_KEY in environment variables or .env file
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-medium text-dark d-flex align-items-center">
+              <i class="fas fa-upload me-2 text-info"></i>
+              Upload Size Limit
+            </label>
+            <div class="input-group">
+              <input class="form-control custom-input" type="number" name="upload_max_mb" 
+                     value="{{ settings.upload_max_mb }}"
+                     style="border-radius: 10px 0 0 10px; border: 2px solid #e9ecef; padding: 12px 16px;">
+              <span class="input-group-text fw-semibold" style="background: #f8f9fa; border: 2px solid #e9ecef; border-left: none; border-radius: 0 10px 10px 0;">
+                MB
+              </span>
+            </div>
+            <div class="form-text mt-2">
+              <i class="fas fa-info-circle me-1"></i>
+              Maximum file size for document uploads
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export & Branding Settings -->
+    <div class="col-12">
+      <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-header bg-transparent border-0 pb-0 pt-4 px-4">
+          <div class="d-flex align-items-center">
+            <div class="icon-wrapper me-3" style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-file-export text-white"></i>
+            </div>
+            <div>
+              <h5 class="card-title mb-1 fw-semibold">Export & Branding</h5>
+              <p class="text-muted small mb-0">Customize reports and company branding</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-body px-4 pb-4">
+          <div class="row g-4">
+            <div class="col-md-8">
+              <label class="form-label fw-medium text-dark d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                Legal Disclaimer
+              </label>
+              <textarea class="form-control custom-textarea" name="disclaimer" rows="4" 
+                        placeholder="Enter your legal disclaimer text..."
+                        style="border-radius: 12px; border: 2px solid #e9ecef; padding: 16px; resize: vertical;">{{ settings.disclaimer }}</textarea>
+              <div class="form-text mt-2">
+                <i class="fas fa-info-circle me-1"></i>
+                This text will appear in exported reports and analyses
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <label class="form-label fw-medium text-dark d-flex align-items-center">
+                <i class="fas fa-image me-2 text-primary"></i>
+                Company Logo
+              </label>
+              
+              <!-- Logo Upload Area -->
+              <div class="logo-upload-area position-relative">
+                <input class="form-control logo-input" type="file" name="logo" accept="image/*" 
+                       style="position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2;">
+                
+                <div class="logo-display-area text-center p-4 border-2 border-dashed rounded-3" 
+                     style="border-color: #dee2e6; background: #f8f9fa; transition: all 0.3s ease; min-height: 120px; display: flex; flex-direction: column; justify-content: center;">
+                  {% if settings.logo_path %}
+                    <div class="current-logo mb-2">
+                      <i class="fas fa-image text-success" style="font-size: 2rem;"></i>
+                      <div class="fw-medium text-success mt-2">Logo Uploaded</div>
+                      <small class="text-muted">{{ settings.logo_path }}</small>
+                    </div>
+                  {% else %}
+                    <div class="no-logo">
+                      <i class="fas fa-cloud-upload-alt text-muted" style="font-size: 2rem;"></i>
+                      <div class="fw-medium text-muted mt-2">Upload Logo</div>
+                      <small class="text-muted">Click to browse</small>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+              
+              <div class="form-text mt-2">
+                <i class="fas fa-info-circle me-1"></i>
+                Recommended: PNG/JPG, max 2MB
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Save Button -->
+  <div class="save-section mt-4 text-center">
+    <button class="btn btn-primary btn-lg px-5 py-3 fw-semibold save-btn" type="submit" 
+            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; min-width: 200px;">
+      <i class="fas fa-save me-2"></i>
+      <span class="save-text">Save Settings</span>
+      <span class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+    </button>
+    <div class="form-text mt-2">
+      <i class="fas fa-info-circle me-1"></i>
+      Changes will be applied immediately after saving
+    </div>
+  </div>
+</form>
+
+<style>
+  .settings-header {
+    margin-bottom: 2rem;
+  }
+  
+  .custom-input, .custom-textarea {
+    transition: all 0.3s ease;
+  }
+  
+  .custom-input:focus, .custom-textarea:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 0.25rem rgba(103, 126, 234, 0.25) !important;
+    transform: translateY(-2px);
+  }
+  
+  .form-check-input:checked {
+    background-color: #667eea;
+    border-color: #667eea;
+  }
+  
+  .form-check-input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(103, 126, 234, 0.25);
+  }
+  
+  .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+  }
+  
+  .icon-wrapper {
+    transition: transform 0.3s ease;
+  }
+  
+  .card:hover .icon-wrapper {
+    transform: scale(1.1);
+  }
+  
+  .logo-upload-area:hover .logo-display-area {
+    border-color: #667eea !important;
+    background: rgba(103, 126, 234, 0.05) !important;
+    transform: translateY(-2px);
+  }
+  
+  .save-btn {
+    transition: all 0.3s ease;
+  }
+  
+  .save-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(103, 126, 234, 0.4);
+  }
+  
+  .threshold-indicator .progress {
+    transition: all 0.3s ease;
+  }
+  
+  .gemini-section {
+    transition: all 0.3s ease;
+  }
+  
+  .gemini-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(67, 233, 123, 0.2);
+  }
+  
+  @media (max-width: 768px) {
+    .settings-header .d-flex {
+      flex-direction: column;
+      text-align: center;
+      gap: 1rem;
+    }
+    
+    .save-section {
+      margin-top: 2rem;
+    }
+    
+    .save-btn {
+      width: 100%;
+    }
+  }
+  
+  /* Custom scrollbar */
+  .custom-textarea::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .custom-textarea::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  .custom-textarea::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+  }
+  
+  /* Loading state */
+  .save-btn:disabled {
+    opacity: 0.7;
+    transform: none;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('.settings-form');
+  const saveBtn = document.querySelector('.save-btn');
+  const saveText = document.querySelector('.save-text');
+  const spinner = document.querySelector('.spinner-border');
+  const logoInput = document.querySelector('.logo-input');
+  const logoDisplay = document.querySelector('.logo-display-area');
+  const thresholdInput = document.querySelector('input[name="threshold"]');
+  const progressBar = document.querySelector('.progress-bar');
+
+  // Form submission loading state
+  form.addEventListener('submit', function() {
+    saveBtn.disabled = true;
+    saveText.textContent = 'Saving...';
+    spinner.classList.remove('d-none');
+  });
+
+  // Logo upload preview
+  logoInput.addEventListener('change', function(e) {
+    if (e.target.files.length > 0) {
+      const file = e.target.files[0];
+      logoDisplay.innerHTML = `
+        <div class="uploading-logo">
+          <i class="fas fa-check-circle text-success" style="font-size: 2rem;"></i>
+          <div class="fw-medium text-success mt-2">New Logo Selected</div>
+          <small class="text-muted">${file.name}</small>
+        </div>
+      `;
+      logoDisplay.style.borderColor = '#28a745';
+      logoDisplay.style.background = 'rgba(40, 167, 69, 0.1)';
+    }
+  });
+
+  // Threshold slider update
+  if (thresholdInput && progressBar) {
+    thresholdInput.addEventListener('input', function() {
+      const value = parseFloat(this.value) || 0;
+      const percentage = Math.round(value * 100);
+      progressBar.style.width = `${percentage}%`;
+      progressBar.parentNode.nextElementSibling.textContent = `Current: ${percentage}%`;
+    });
+  }
+
+  // Logo drag and drop
+  logoDisplay.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.style.borderColor = '#667eea';
+    this.style.background = 'rgba(103, 126, 234, 0.1)';
+  });
+
+  logoDisplay.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    this.style.borderColor = '#dee2e6';
+    this.style.background = '#f8f9fa';
+  });
+
+  logoDisplay.addEventListener('drop', function(e) {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith('image/')) {
+      logoInput.files = files;
+      logoInput.dispatchEvent(new Event('change'));
+    }
+    this.style.borderColor = '#dee2e6';
+    this.style.background = '#f8f9fa';
+  });
+});
+</script>
+{% endblock %}

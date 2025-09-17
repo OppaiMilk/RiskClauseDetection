@@ -1,0 +1,476 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+<!-- Header Section -->
+<div class="analysis-header mb-4">
+  <div class="d-flex justify-content-between align-items-center p-4 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <div class="d-flex align-items-center">
+      <div class="icon-wrapper me-3" style="width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+        <i class="fas fa-file-contract text-white"></i>
+      </div>
+      <div>
+        <h4 class="mb-1 fw-bold">{{ contract.filename }}</h4>
+        <p class="mb-0 opacity-75">Contract Analysis Results</p>
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('analyze.export_report', analysis_id=analysis.id) }}">
+      <button class="btn btn-light btn-lg px-4 py-2 shadow-sm export-btn" type="submit">
+        <i class="fas fa-download me-2"></i>Export Report
+        <span class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="alert alert-info shadow-sm mb-4">Detected <strong>{{ total_hits }}</strong> risky clause{{ 's' if total_hits != 1 else '' }} across <strong>{{ counts|length }}</strong> categor{{ 'y' if counts|length == 1 else 'ies' }}.{% if not summary_text %}<span class="ms-2 text-muted"><i class="fas fa-info-circle me-1"></i>(No Gemini summary available)</span>{% endif %}</div>
+
+<div class="row g-4">
+
+  <!-- Left Column: Document Preview -->
+  <div class="col-lg-7">
+    {% if is_pdf %}
+    <!-- PDF Viewer Card -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+      <div class="card-header bg-transparent border-0 pt-4 px-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <div class="icon-wrapper me-3" style="width: 32px; height: 32px; background: linear-gradient(135deg, #dc3545, #e83e8c); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-file-pdf text-white" style="font-size: 0.875rem;"></i>
+            </div>
+            <h6 class="mb-0 fw-semibold">PDF Document</h6>
+          </div>
+          <div class="pdf-controls">
+            <div class="btn-group" role="group" aria-label="PDF mode">
+              <button type="button" id="btn-pdf-original" class="btn btn-sm btn-outline-primary" style="border-radius: 8px 0 0 8px;">
+                <i class="fas fa-file me-1"></i>Original
+              </button>
+              <button type="button" id="btn-pdf-highlighted" class="btn btn-sm btn-primary" style="border-radius: 0 8px 8px 0;">
+                <i class="fas fa-highlighter me-1"></i>Highlighted
+              </button>
+            </div>
+            <a class="btn btn-sm btn-outline-secondary ms-2" href="{{ url_for('analyze.view_pdf', analysis_id=analysis.id) }}" target="_blank" style="border-radius: 8px;">
+              <i class="fas fa-external-link-alt me-1"></i>Open in Tab
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p-0" style="border-radius: 0 0 16px 16px; overflow: hidden;">
+        <div class="pdf-viewer-container" style="height: 600px; position: relative;">
+          <iframe id="pdf-original" class="pdf-frame d-none" src="{{ url_for('analyze.pdf_viewer', analysis_id=analysis.id, mode='original') }}" data-base="{{ url_for('analyze.pdf_viewer', analysis_id=analysis.id, mode='original') }}" style="width: 100%; height: 100%; border: none;"></iframe>
+          <iframe id="pdf-highlighted" class="pdf-frame" data-src="{{ url_for('analyze.pdf_viewer', analysis_id=analysis.id, mode='highlighted') }}" data-base="{{ url_for('analyze.pdf_viewer', analysis_id=analysis.id, mode='highlighted') }}" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- HTML Preview Card -->
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+      <div class="card-header bg-transparent border-0 pt-4 px-4">
+        <div class="d-flex align-items-center">
+          <div class="icon-wrapper me-3" style="width: 32px; height: 32px; background: linear-gradient(135deg, #43e97b, #38f9d7); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-code text-white" style="font-size: 0.875rem;"></i>
+          </div>
+          <h6 class="mb-0 fw-semibold">Document Preview</h6>
+        </div>
+      </div>
+      <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+        <div id="preview" class="preview-container" style="line-height: 1.6;">{{ annotated_html|safe }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Results & Summary -->
+  <div class="col-lg-5">
+    <!-- Results by Category Card -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+      <div class="card-header bg-transparent border-0 pt-4 px-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <div class="icon-wrapper me-3" style="width: 32px; height: 32px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-list-ul text-white" style="font-size: 0.875rem;"></i>
+            </div>
+            <h6 class="mb-0 fw-semibold">Results by Category</h6>
+          </div>
+          {% if counts %}
+            <div class="btn-group btn-group-sm" role="group">
+              <button class="btn btn-outline-secondary" type="button" id="expand-all" style="border-radius: 6px 0 0 6px; font-size: 0.75rem;">
+                <i class="fas fa-expand-alt me-1"></i>Expand
+              </button>
+              <button class="btn btn-outline-secondary" type="button" id="collapse-all" style="border-radius: 0 6px 6px 0; font-size: 0.75rem;">
+                <i class="fas fa-compress-alt me-1"></i>Collapse
+              </button>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body px-4 pb-4">
+        {% if counts %}
+          <div class="accordion" id="resultsAccordion">
+            {% for item in counts|dictsort(by='value', reverse=true) %}
+              {% set cat = item[0] %}
+              {% set n = item[1] %}
+              <div class="accordion-item border-0 mb-2" style="border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h2 class="accordion-header" id="heading-{{ loop.index }}">
+                  <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ loop.index }}" aria-expanded="false" aria-controls="collapse-{{ loop.index }}" style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); border: none; padding: 16px 20px;">
+                    <div class="d-flex align-items-center w-100">
+                      <span class="legend me-3" style="background: {{ category_colors.get(cat, '#ddd') }}; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;"></span>
+                      <span class="flex-grow-1">{{ cat|default('Uncategorized') }}</span>
+                      <span class="badge rounded-pill px-3 py-2 ms-2" style="background: linear-gradient(135deg, #4facfe, #00f2fe); font-size: 0.75rem;">{{ n }}</span>
+                    </div>
+                  </button>
+                </h2>
+                <div id="collapse-{{ loop.index }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ loop.index }}" data-bs-parent="#resultsAccordion">
+                  <div class="accordion-body p-0">
+                    <div class="results-list">
+                      {% for h in hits_by_category.get(cat, []) %}
+                        <div class="result-item p-3 border-bottom border-light" data-category="{{ h.category|lower }}">
+                          <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                              <span class="legend" style="background: {{ h.color or '#ddd' }}; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;"></span>
+                              <a href="#hit-{{ hit_index[h.id] }}" class="hit-link text-decoration-none fw-medium text-primary">
+                                <i class="fas fa-crosshairs me-1"></i>Jump to highlight
+                              </a>
+                            </div>
+                            <div class="confidence-badge px-2 py-1 rounded" style="background: linear-gradient(135deg, #17a2b8, #20c997); color: white; font-size: 0.75rem;">
+                              {{ '%.0f'|format(h.prob * 100) }}%
+                            </div>
+                          </div>
+                          
+                          <div class="clause-info mb-2">
+                            <div class="clause-category fw-medium text-dark mb-1" style="font-size: 0.875rem;">{{ h.category }}</div>
+                            <div class="clause-excerpt text-muted small" style="line-height: 1.4;">{{ h.text_excerpt }}</div>
+                          </div>
+                          
+                          <div class="clause-actions d-flex gap-2 flex-wrap">
+                            {% if settings.enable_gemini %}
+                              <button class="btn btn-sm btn-outline-info explain-btn" data-hit="{{ h.id }}" style="border-radius: 6px; font-size: 0.75rem;">
+                                <i class="fas fa-lightbulb me-1"></i>Explain
+                              </button>
+                            {% endif %}
+                            {% if is_pdf %}
+                              <button type="button" class="btn btn-sm btn-outline-primary pdf-jump" data-hit="{{ h.id }}" style="border-radius: 6px; font-size: 0.75rem;">
+                                <i class="fas fa-file-pdf me-1"></i>View in PDF
+                              </button>
+                            {% endif %}
+                          </div>
+                          
+                          <div class="explanation small text-muted d-none mt-2 p-2 rounded" style="background: rgba(23, 162, 184, 0.1); border-left: 3px solid #17a2b8;"></div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4">
+            <div class="empty-state-icon mb-3" style="width: 60px; height: 60px; background: #f8f9fa; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+              <i class="fas fa-shield-alt text-success" style="font-size: 1.5rem;"></i>
+            </div>
+            <h6 class="text-success fw-semibold mb-2">All Clear!</h6>
+            <p class="text-muted small mb-0">No risky clauses detected in this contract.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Gemini Summary Card -->
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+      <div class="card-header bg-transparent border-0 pt-4 px-4">
+        <div class="d-flex align-items-center">
+          <div class="icon-wrapper me-3" style="width: 32px; height: 32px; background: linear-gradient(135deg, #ffecd2, #fcb69f); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-robot" style="color: #8b5a2b; font-size: 0.875rem;"></i>
+          </div>
+          <h6 class="mb-0 fw-semibold">AI Summary</h6>
+          {% if summary_text %}
+            <span class="badge rounded-pill ms-2 px-2 py-1" style="background: linear-gradient(135deg, #43e97b, #38f9d7); font-size: 0.7rem;">
+              <i class="fas fa-check me-1"></i>Generated
+            </span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body px-4 pb-4">
+        {% if summary_text %}
+          <div class="summary-content p-3 rounded" style="background: linear-gradient(135deg, rgba(255, 236, 210, 0.3), rgba(252, 182, 159, 0.3)); border-left: 3px solid #fcb69f;">
+            <pre class="mb-0 text-dark" style="white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 0.875rem; line-height: 1.5;">{{ summary_text }}</pre>
+          </div>
+        {% else %}
+          <div class="text-center py-4">
+            <div class="empty-state-icon mb-3" style="width: 60px; height: 60px; background: #f8f9fa; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+              <i class="fas fa-robot text-muted" style="font-size: 1.5rem;"></i>
+            </div>
+            <h6 class="text-muted mb-2">No AI Summary</h6>
+            <p class="text-muted small mb-3">Enable Gemini in Settings to get AI-powered contract summaries.</p>
+            <a href="#" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;">
+              <i class="fas fa-cog me-1"></i>Go to Settings
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .analysis-header {
+    margin-bottom: 2rem;
+  }
+  
+  .export-btn {
+    transition: all 0.3s ease;
+  }
+  
+  .export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
+  
+  .risk-summary .alert {
+    transition: transform 0.3s ease;
+  }
+  
+  .risk-summary .alert:hover {
+    transform: translateY(-2px);
+  }
+  
+  .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+  }
+  
+  .pdf-controls .btn {
+    transition: all 0.2s ease;
+  }
+  
+  .pdf-controls .btn:hover {
+    transform: translateY(-1px);
+  }
+  
+  .accordion-button {
+    transition: all 0.3s ease;
+  }
+  
+  .accordion-button:hover {
+    transform: translateX(5px);
+  }
+  
+  .result-item {
+    transition: background-color 0.2s ease;
+  }
+  
+  .result-item:hover {
+    background: rgba(103, 126, 234, 0.05);
+  }
+  
+  .hit-link {
+    transition: all 0.2s ease;
+  }
+  
+  .hit-link:hover {
+    transform: translateX(3px);
+    color: #4facfe !important;
+  }
+  
+  .clause-actions .btn {
+    transition: all 0.2s ease;
+  }
+  
+  .clause-actions .btn:hover {
+    transform: translateY(-2px);
+  }
+  
+  .legend {
+    transition: transform 0.2s ease;
+  }
+  
+  .result-item:hover .legend {
+    transform: scale(1.2);
+  }
+  
+  .pulse {
+    animation: pulse 1s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  
+  /* Custom scrollbar */
+  .preview-container::-webkit-scrollbar,
+  .card-body::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .preview-container::-webkit-scrollbar-track,
+  .card-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  .preview-container::-webkit-scrollbar-thumb,
+  .card-body::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+  }
+  
+  @media (max-width: 768px) {
+    .analysis-header .d-flex {
+      flex-direction: column;
+      text-align: center;
+      gap: 1rem;
+    }
+    
+    .pdf-controls {
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: stretch;
+    }
+    
+    .pdf-controls .btn-group {
+      width: 100%;
+    }
+    
+    .pdf-viewer-container {
+      height: 400px !important;
+    }
+    
+    .clause-actions {
+      justify-content: center;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    // Export button loading state
+    const exportBtn = document.querySelector('.export-btn');
+    const exportForm = exportBtn?.closest('form');
+    if (exportForm) {
+      exportForm.addEventListener('submit', function() {
+        const spinner = exportBtn.querySelector('.spinner-border');
+        if (spinner) spinner.classList.remove('d-none');
+        exportBtn.disabled = true;
+      });
+    }
+
+    // PDF mode toggle (Original vs Highlighted)
+    const btnOrig = document.getElementById('btn-pdf-original');
+    const btnHi = document.getElementById('btn-pdf-highlighted');
+    const orig = document.getElementById('pdf-original');
+    const hi = document.getElementById('pdf-highlighted');
+    
+    function setPdfMode(mode){
+      const showOrig = mode === 'orig';
+      if (orig && hi) {
+        orig.classList.toggle('d-none', !showOrig);
+        hi.classList.toggle('d-none', showOrig);
+        if (btnOrig && btnHi) {
+          btnOrig.classList.toggle('btn-primary', showOrig);
+          btnOrig.classList.toggle('btn-outline-primary', !showOrig);
+          btnHi.classList.toggle('btn-primary', !showOrig);
+          btnHi.classList.toggle('btn-outline-primary', showOrig);
+        }
+        // Lazy-load highlighted viewer when toggling modes for comparison
+        if (!showOrig && hi && !hi.getAttribute('src')){
+          const u = hi.getAttribute('data-src');
+          if (u) hi.setAttribute('src', u);
+        } else if (showOrig && orig && !orig.getAttribute('src')){
+          const u = orig.getAttribute('data-base');
+          if (u) orig.setAttribute('src', u);
+        }
+      }
+    }
+    if (btnOrig) btnOrig.addEventListener('click', ()=>setPdfMode('orig'));
+    if (btnHi) btnHi.addEventListener('click', ()=>setPdfMode('hi'));
+    window.__setPdfMode = setPdfMode;
+    // Default to showing the highlighted PDF on load
+    setPdfMode('hi');
+
+    // Smooth scroll within the HTML preview when a hit link is clicked
+    document.querySelectorAll('.hit-link').forEach(function(a){
+      a.addEventListener('click', function(ev){
+        const href = a.getAttribute('href');
+        const target = document.querySelector(href);
+        const container = document.querySelector('#preview');
+        if (target && container){
+          ev.preventDefault();
+          const top = target.offsetTop - 20;
+          container.scrollTo({ top: top, behavior: 'smooth' });
+          target.classList.add('pulse');
+          setTimeout(()=>target.classList.remove('pulse'), 1000);
+        }
+      });
+    });
+
+    // Gemini explanation buttons fetch summaries on demand
+    document.querySelectorAll('.explain-btn').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        const hitId = btn.getAttribute('data-hit');
+        const row = btn.closest('.result-item');
+        const target = row ? row.querySelector('.explanation') : null;
+        if (!target) return;
+        
+        // Loading state
+        const originalText = btn.innerHTML;
+        btn.disabled = true; 
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
+        
+        try {
+          const res = await fetch(window.location.pathname + '/explain/' + hitId, { method: 'POST' });
+          const data = await res.json();
+          if (data.ok){ 
+            target.innerHTML = '<i class="fas fa-lightbulb me-2"></i>' + data.explanation;
+          } else { 
+            target.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>' + (data.error || 'Failed to generate explanation.');
+          }
+          target.classList.remove('d-none');
+        } catch(e){ 
+          target.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Error: ' + e; 
+          target.classList.remove('d-none'); 
+        }
+        finally { 
+          btn.disabled = false; 
+          btn.innerHTML = originalText;
+        }
+      });
+    });
+
+    // PDF jump button reloads the original viewer so overlay coordinates stay accurate
+    document.querySelectorAll('.pdf-jump').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        const hitId = btn.getAttribute('data-hit');
+        if (typeof window.__setPdfMode === 'function') window.__setPdfMode('orig');
+        const iframe = document.getElementById('pdf-original');
+        if (iframe){
+          const base = iframe.getAttribute('data-base');
+          if (base){ iframe.setAttribute('src', base + '?jump=' + encodeURIComponent(hitId) + '&t=' + Date.now()); }
+        }
+      });
+    });
+
+    // Expand/collapse helpers for the results accordion
+    const expandBtn = document.getElementById('expand-all');
+    const collapseBtn = document.getElementById('collapse-all');
+    if (expandBtn) expandBtn.addEventListener('click', function(){
+      document.querySelectorAll('#resultsAccordion .accordion-collapse').forEach(function(el){
+        const inst = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+        inst.show();
+      });
+    });
+    if (collapseBtn) collapseBtn.addEventListener('click', function(){
+      document.querySelectorAll('#resultsAccordion .accordion-collapse.show').forEach(function(el){
+        const inst = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+        inst.hide();
+      });
+    });
+  });
+</script>
+{% endblock %}
