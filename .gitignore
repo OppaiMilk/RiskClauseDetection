@@ -22,3 +22,31 @@ uploads/*
 # Misc
 *.log
 !reports/.gitkeep
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+
+# Editor settings
+.vscode/
+.idea/
+*.code-workspace
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Swap files
+*.swp
+*.swo
+*~
