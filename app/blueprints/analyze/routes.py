@@ -16,6 +16,27 @@ from ...services.pdf_highlight import generate_highlighted_pdf, compute_hit_rect
 
 
 
+CATEGORY_TIPS = {
+    "payment terms": "Explains when and how money moves; unclear wording can delay cash or spark disputes.",
+    "liability & exclusions": "Sets who pays when things go wrong; missing limits can leave you covering big losses.",
+    "termination": "Spells out how the deal can end; weak terms can trap you or allow surprise exits.",
+    "intellectual property": "Decides who keeps the ideas or work produced; vague language might hand over rights.",
+    "confidentiality": "Controls how private info is shared; soft rules increase the chance of leaks.",
+}
+
+DEFAULT_TIP = "This clause affects daily work. Make sure it matches how you plan to collaborate."
+
+def plain_language_tip(category: str) -> str:
+    return CATEGORY_TIPS.get((category or "").strip().lower(), DEFAULT_TIP)
+
+def risk_level_summary(prob: float) -> tuple[str, str]:
+    score = float(prob or 0.0)
+    if score >= 0.8:
+        return ("High", "Very likely to cause issues if left as-is.")
+    if score >= 0.55:
+        return ("Medium", "Worth a closer look to keep things balanced.")
+    return ("Low", "Model sees limited risk, but give it a quick read.")
+
 ALLOWED_EXT = {".pdf", ".docx"}
 
 
@@ -124,6 +145,9 @@ def view_result(analysis_id: int):
         hit_index[h.id] = idx
         color = category_color(h.category)
         setattr(h, "color", color)
+        risk_label, risk_message = risk_level_summary(h.prob)
+        setattr(h, "risk_label", risk_label)
+        setattr(h, "risk_message", risk_message)
         spans.append(type("S", (), dict(start=h.start_char, end=h.end_char, page_no=h.page_no, category=h.category, prob=h.prob, text=h.text_excerpt, color=color)))
 
     # Default annotated view over plain text
@@ -136,6 +160,7 @@ def view_result(analysis_id: int):
         counts[h.category] = counts.get(h.category, 0) + 1
         hits_by_category.setdefault(h.category, []).append(h)
     category_colors = {cat: category_color(cat) for cat in hits_by_category.keys()}
+    category_intros = {cat: plain_language_tip(cat) for cat in hits_by_category.keys()}
 
     summary_obj = Summary.query.filter_by(analysis_id=analysis.id).order_by(Summary.created_at.desc()).first()
     summary_text = summary_obj.output_text if summary_obj else ""
@@ -175,6 +200,7 @@ def view_result(analysis_id: int):
         hits=hits,
         hits_by_category=hits_by_category,
         category_colors=category_colors,
+        category_intros=category_intros,
         hit_index=hit_index,
         summary_text=summary_text,
         is_pdf=is_pdf,

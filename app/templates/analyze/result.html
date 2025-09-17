@@ -28,7 +28,6 @@
   <!-- Left Column: Document Preview -->
   <div class="col-lg-7">
     {% if is_pdf %}
-    <!-- PDF Viewer Card -->
     <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
       <div class="card-header bg-transparent border-0 pt-4 px-4">
         <div class="d-flex justify-content-between align-items-center">
@@ -60,9 +59,7 @@
         </div>
       </div>
     </div>
-    {% endif %}
-
-    <!-- HTML Preview Card -->
+    {% else %}
     <div class="card border-0 shadow-sm" style="border-radius: 16px;">
       <div class="card-header bg-transparent border-0 pt-4 px-4">
         <div class="d-flex align-items-center">
@@ -76,6 +73,7 @@
         <div id="preview" class="preview-container" style="line-height: 1.6;">{{ annotated_html|safe }}</div>
       </div>
     </div>
+    {% endif %}
   </div>
 
   <!-- Right Column: Results & Summary -->
@@ -120,30 +118,34 @@
                 </h2>
                 <div id="collapse-{{ loop.index }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ loop.index }}" data-bs-parent="#resultsAccordion">
                   <div class="accordion-body p-0">
+                    <div class="category-intro px-3 py-2 text-muted small" style="background: rgba(103, 126, 234, 0.08); border-left: 3px solid {{ category_colors.get(cat, '#667eea') }}; border-radius: 8px;">
+                      <strong>Why this category matters:</strong> {{ category_intros.get(cat) }}
+                    </div>
                     <div class="results-list">
                       {% for h in hits_by_category.get(cat, []) %}
                         <div class="result-item p-3 border-bottom border-light" data-category="{{ h.category|lower }}">
                           <div class="d-flex justify-content-between align-items-start mb-2">
                             <div class="d-flex align-items-center gap-2">
                               <span class="legend" style="background: {{ h.color or '#ddd' }}; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;"></span>
-                              <a href="#hit-{{ hit_index[h.id] }}" class="hit-link text-decoration-none fw-medium text-primary">
-                                <i class="fas fa-crosshairs me-1"></i>Jump to highlight
-                              </a>
+                              <span class="fw-semibold text-dark" style="font-size: 0.875rem;">{{ h.category }}</span>
                             </div>
                             <div class="confidence-badge px-2 py-1 rounded" style="background: linear-gradient(135deg, #17a2b8, #20c997); color: white; font-size: 0.75rem;">
                               {{ '%.0f'|format(h.prob * 100) }}%
                             </div>
                           </div>
                           
-                          <div class="clause-info mb-2">
-                            <div class="clause-category fw-medium text-dark mb-1" style="font-size: 0.875rem;">{{ h.category }}</div>
-                            <div class="clause-excerpt text-muted small" style="line-height: 1.4;">{{ h.text_excerpt }}</div>
-                          </div>
-                          
+                          <div class="clause-info mb-2 text-muted small" style="line-height: 1.4;">{{ h.text_excerpt }}</div>
+                          <div class="risk-level small text-muted mb-3"><strong>Risk level:</strong> {{ h.risk_label }} risk - {{ h.risk_message }}</div>
+
                           <div class="clause-actions d-flex gap-2 flex-wrap">
                             {% if settings.enable_gemini %}
                               <button class="btn btn-sm btn-outline-info explain-btn" data-hit="{{ h.id }}" style="border-radius: 6px; font-size: 0.75rem;">
                                 <i class="fas fa-lightbulb me-1"></i>Explain
+                              </button>
+                            {% endif %}
+                            {% if not is_pdf %}
+                              <button type="button" class="btn btn-sm btn-outline-primary jump-btn" data-hit="{{ h.id }}" data-target="hit-{{ hit_index[h.id] }}" style="border-radius: 6px; font-size: 0.75rem;">
+                                <i class="fas fa-crosshairs me-1"></i>Jump to highlight
                               </button>
                             {% endif %}
                             {% if is_pdf %}
@@ -394,18 +396,50 @@
     // Default to showing the highlighted PDF on load
     setPdfMode('hi');
 
-    // Smooth scroll within the HTML preview when a hit link is clicked
-    document.querySelectorAll('.hit-link').forEach(function(a){
-      a.addEventListener('click', function(ev){
-        const href = a.getAttribute('href');
-        const target = document.querySelector(href);
+    async function ensureFrameReady(frame, src){
+      if (!frame) return null;
+      if (!frame.getAttribute('src')){
+        if (!src) return null;
+        await new Promise(resolve => {
+          const handler = () => { frame.removeEventListener('load', handler); resolve(); };
+          frame.addEventListener('load', handler, { once: true });
+          frame.setAttribute('src', src);
+        });
+      } else if (!frame.contentDocument || frame.contentDocument.readyState !== 'complete'){
+        await new Promise(resolve => {
+          const handler = () => { frame.removeEventListener('load', handler); resolve(); };
+          frame.addEventListener('load', handler, { once: true });
+        });
+      }
+      return frame.contentWindow || null;
+    }
+
+    async function sendJumpToPdf(hitId){
+      if (!hitId) return;
+      const orig = document.getElementById('pdf-original');
+      const hi = document.getElementById('pdf-highlighted');
+      if (!orig && !hi) return;
+      const origWin = await ensureFrameReady(orig, orig ? orig.getAttribute('data-base') : null);
+      const hiWin = await ensureFrameReady(hi, hi ? hi.getAttribute('data-src') : null);
+      if (origWin) origWin.postMessage({ type: 'jump', hitId }, '*');
+      if (hiWin) hiWin.postMessage({ type: 'jump', hitId }, '*');
+    }
+
+    // Jump button controls preview scroll and PDF viewer sync
+    document.querySelectorAll('.jump-btn').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        const hitId = btn.getAttribute('data-hit');
+        const targetId = btn.getAttribute('data-target');
+        const target = targetId ? document.getElementById(targetId) : null;
         const container = document.querySelector('#preview');
         if (target && container){
-          ev.preventDefault();
           const top = target.offsetTop - 20;
           container.scrollTo({ top: top, behavior: 'smooth' });
           target.classList.add('pulse');
           setTimeout(()=>target.classList.remove('pulse'), 1000);
+        }
+        if (hitId){
+          await sendJumpToPdf(hitId);
         }
       });
     });
@@ -448,11 +482,7 @@
       btn.addEventListener('click', function(){
         const hitId = btn.getAttribute('data-hit');
         if (typeof window.__setPdfMode === 'function') window.__setPdfMode('orig');
-        const iframe = document.getElementById('pdf-original');
-        if (iframe){
-          const base = iframe.getAttribute('data-base');
-          if (base){ iframe.setAttribute('src', base + '?jump=' + encodeURIComponent(hitId) + '&t=' + Date.now()); }
-        }
+        sendJumpToPdf(hitId);
       });
     });
 
