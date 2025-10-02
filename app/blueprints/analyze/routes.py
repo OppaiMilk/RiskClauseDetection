@@ -65,7 +65,7 @@ def render_summary_html(text: str) -> str:
     else:
         return _markdown.markdown(text, extensions=["extra"])
 
-ALLOWED_EXT = {".pdf", ".docx"}
+ALLOWED_EXT = {".pdf", ".docx", ".jpg", ".jpeg", ".png"}
 
 
 def allowed_file(filename: str) -> bool:
@@ -85,7 +85,7 @@ def run_analysis():
         flash("Please choose a file.", "warning")
         return redirect(url_for("analyze.upload_form"))
     if not f.filename or not allowed_file(f.filename):
-        flash("Unsupported file type. Allowed: PDF or DOCX.", "danger")
+        flash("Unsupported file type. Allowed: PDF, DOCX, JPG, or PNG.", "danger")
         return redirect(url_for("analyze.upload_form"))
 
     config = current_app.config
@@ -104,7 +104,31 @@ def run_analysis():
     f.save(save_path)
 
     file_hash = sha256_file(save_path)
-    text, num_pages = parse_document(save_path)
+    try:
+        text, num_pages = parse_document(save_path)
+    except RuntimeError as exc:
+        flash(str(exc), "danger")
+        try:
+            os.remove(save_path)
+        except OSError:
+            current_app.logger.warning("Failed to remove file after OCR error: %s", save_path, exc_info=True)
+        return redirect(url_for("analyze.upload_form"))
+    except Exception:
+        current_app.logger.exception("Failed to parse uploaded document")
+        flash("We could not read this file. Please try a clearer image or convert it to PDF.", "danger")
+        try:
+            os.remove(save_path)
+        except OSError:
+            current_app.logger.warning("Failed to remove unreadable file: %s", save_path, exc_info=True)
+        return redirect(url_for("analyze.upload_form"))
+
+    if not (text or "").strip():
+        flash("No readable text detected. If you uploaded an image, please ensure it is clear and that Tesseract OCR is installed.", "danger")
+        try:
+            os.remove(save_path)
+        except OSError:
+            current_app.logger.warning("Failed to remove file lacking OCR text: %s", save_path, exc_info=True)
+        return redirect(url_for("analyze.upload_form"))
 
     contract = Contract(filename=filename, path=save_path, file_hash=file_hash, num_pages=num_pages)
     db.session.add(contract)
